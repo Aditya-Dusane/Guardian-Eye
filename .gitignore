@@ -16,21 +16,28 @@ env/
 .env/
 
 # ── Model / data artifacts (large binaries) ──────────────────
-# Checkpoints are excluded from git — keep them locally.
-Project/checkpoints/model.pth
-Project/checkpoints/train_errors.npy
+*.pth
+*.npy
 
 # ── Output videos ─────────────────────────────────────────────
+outputs/
 Project/outputs/
 
-# ── Dataset archives and raw dataset folders ─────────────────
-Sanghaitech/
+# ── Dataset folders (large) ───────────────────────────────────
+dataset/
+Project/dataset/
+ShanghaiTech/
 ucsd/
+
+# ── Archives ─────────────────────────────────────────────────
 *.tar.gz
 *.tar.gz.*
+*.zip
 
-# ── Training dataset frames (usually large) ──────────────────
-Project/dataset/
+# ── Node / frontend ───────────────────────────────────────────
+node_modules/
+dist/
+build/
 
 # ── IDE / OS ──────────────────────────────────────────────────
 .vscode/
@@ -39,9 +46,10 @@ Project/dataset/
 .DS_Store
 Thumbs.db
 
-# ── Temporary / test uploads ──────────────────────────────────
+# ── Logs / temp ──────────────────────────────────────────────
+*.log
 tmp/
 *.tmp
 
-# ── Gemini AI tooling ─────────────────────────────────────────
+# ── AI / tools ───────────────────────────────────────────────
 .gemini/

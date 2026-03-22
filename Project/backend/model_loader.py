@@ -37,7 +37,7 @@ def get_model() -> MemAE3D:
 
 
 def get_threshold() -> float:
-    """Return the anomaly threshold (98th percentile of training errors)."""
+    """Return the anomaly threshold."""
     global _threshold
     if _threshold is None:
         _load()
@@ -75,14 +75,26 @@ def _load() -> None:
             "Please ensure checkpoints/train_errors.npy exists."
         )
 
+    # Load model
     model = MemAE3D().to(DEVICE)
     state = torch.load(MODEL_PATH, map_location=DEVICE)
     model.load_state_dict(state)
     model.eval()
     _model = model
 
+    # Load training errors
     _train_errors = np.load(ERRORS_PATH)
-    _threshold = float(np.percentile(_train_errors, 98))
 
+    # ------------------- 🔥 IMPROVED THRESHOLD -------------------
+    # Use higher percentile + safety margin to reduce false positives
+    base_threshold = float(np.percentile(_train_errors, 99.5))
+    _threshold = base_threshold * 1.1
+    # ------------------------------------------------------------
+
+    # Debug prints (VERY useful)
     print(f"[model_loader] Model loaded on {DEVICE}")
-    print(f"[model_loader] Threshold (98th pct): {_threshold:.6f}")
+    print(f"[model_loader] Train error stats:")
+    print(f"  Min: {np.min(_train_errors):.6f}")
+    print(f"  Max: {np.max(_train_errors):.6f}")
+    print(f"  Mean: {np.mean(_train_errors):.6f}")
+    print(f"[model_loader] Threshold (99.5 pct + margin): {_threshold:.6f}")

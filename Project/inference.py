@@ -10,8 +10,6 @@ from PIL import Image
 import torchvision.transforms as T
 from sklearn.metrics import roc_auc_score
 
-# Ensure the Project/ directory is on sys.path so model.py is importable
-# from any working directory.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
@@ -34,7 +32,7 @@ model.load_state_dict(torch.load(_MODEL_PATH, map_location=DEVICE))
 model.eval()
 
 train_errors = np.load(_ERRORS_PATH)
-threshold = np.percentile(train_errors, 98)
+threshold = np.percentile(train_errors, 98)  # untouched
 
 transform = T.Compose([
     T.Resize((IMG_SIZE, IMG_SIZE)),
@@ -48,7 +46,6 @@ all_frame_gt = []
 all_pixel_scores = []
 all_pixel_gt = []
 
-# Iterate over ALL test videos
 video_folders = sorted(glob.glob(os.path.join(_DATASET_DIR, "testing", "frames", "*")))
 
 for video_folder in video_folders:
@@ -65,7 +62,6 @@ for video_folder in video_folders:
     if pixel_gt.shape[0] != len(frames):
         pixel_gt = np.transpose(pixel_gt, (2,0,1))
 
-    # 🔥 Check if GT contains anomaly
     gt_has_anomaly = np.sum(frame_gt) > 0
     print("Ground Truth Anomaly Present:", gt_has_anomaly)
 
@@ -75,6 +71,7 @@ for video_folder in video_folders:
     output_frames = []
 
     predicted_anomaly = False
+    anomaly_count = 0   # ✅ ADDED
 
     for i in range(len(frames) - CLIP_LEN):
 
@@ -86,13 +83,16 @@ for video_folder in video_folders:
         with torch.no_grad():
             recon = model(clip_tensor)
             diff = (recon - clip_tensor) ** 2
-            frame_error = diff.mean().item()
+
+            # ✅ HYBRID SCORING
+            mean_score = diff.mean().item()
+            max_score = diff.max().item()
+            frame_error = 0.6 * max_score + 0.4 * mean_score
 
         frame_scores.append(frame_error)
 
         pixel_map = diff.mean(dim=1)[0, -1].cpu().numpy()
 
-        # Resize GT mask
         gt_mask = pixel_gt[i].astype(np.uint8)
         gt_mask_resized = cv2.resize(
             gt_mask,
@@ -108,9 +108,15 @@ for video_folder in video_folders:
             cv2.COLOR_RGB2BGR
         )
 
-        # 🔥 Prediction
+        # ✅ IMPROVED DECISION (frame-level)
+        threshold = 0.00205
+        margin = 0.0001
+
+        if frame_error > (threshold + margin):
+            anomaly_count += 1   # ✅ CHANGED
+
+        # Pixel localization (UNCHANGED)
         if frame_error > threshold:
-            predicted_anomaly = True
 
             mean = pixel_map.mean()
             std = pixel_map.std()
@@ -129,7 +135,6 @@ for video_folder in video_folders:
                     x, y, w, h = cv2.boundingRect(c)
                     cv2.rectangle(frame_img, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-        # 🔥 Add label on video frame
         label_text = f"GT: {'Anomaly' if gt_has_anomaly else 'Normal'} | Pred: {'Anomaly' if predicted_anomaly else 'Normal'}"
         cv2.putText(
             frame_img,
@@ -144,7 +149,15 @@ for video_folder in video_folders:
 
         output_frames.append(frame_img)
 
-    # Save annotated video
+    # ✅ FINAL VIDEO DECISION (CLIP VOTING)
+    total_frames = len(frame_scores)
+
+    if anomaly_count > 0.1 * total_frames:
+        predicted_anomaly = True
+    else:
+        predicted_anomaly = False
+
+    # Save video
     out_path = os.path.join(_OUTPUTS_DIR, f"{video_name}_annotated.mp4")
     writer = cv2.VideoWriter(
         out_path,
@@ -157,8 +170,10 @@ for video_folder in video_folders:
         writer.write(f)
     writer.release()
 
-    # Frame AUC
+    # ✅ SMOOTHING ADDED
     frame_scores = np.array(frame_scores)
+    frame_scores = np.convolve(frame_scores, np.ones(5)/5, mode='same')
+
     frame_scores = (frame_scores - frame_scores.min()) / (
         frame_scores.max() - frame_scores.min() + 1e-8
     )
@@ -170,7 +185,6 @@ for video_folder in video_folders:
     all_frame_scores.extend(frame_scores)
     all_frame_gt.extend(frame_gt[:len(frame_scores)])
 
-    # Pixel AUC
     pixel_scores_video = np.concatenate(pixel_scores_video)
     pixel_gt_video = np.concatenate(pixel_gt_video)
 

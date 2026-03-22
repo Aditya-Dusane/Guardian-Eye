@@ -12,7 +12,7 @@ import os
 import sys
 import tempfile
 import uuid
-
+import uvicorn  # type: ignore
 import cv2  # type: ignore
 import numpy as np  # type: ignore
 import torch  # type: ignore
@@ -227,5 +227,21 @@ async def predict(file: UploadFile = File(...)):
 # Run directly
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    import uvicorn  # type: ignore
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+@app.get("/")
+def root():
+    return {
+        "status": "Backend is running",
+        "docs": "http://127.0.0.1:8000/docs"
+    }
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
