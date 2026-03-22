@@ -1,0 +1,47 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ── Virtual environments ──────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ── Model / data artifacts (large binaries) ──────────────────
+# Checkpoints are excluded from git — keep them locally.
+Project/checkpoints/model.pth
+Project/checkpoints/train_errors.npy
+
+# ── Output videos ─────────────────────────────────────────────
+Project/outputs/
+
+# ── Dataset archives and raw dataset folders ─────────────────
+Sanghaitech/
+ucsd/
+*.tar.gz
+*.tar.gz.*
+
+# ── Training dataset frames (usually large) ──────────────────
+Project/dataset/
+
+# ── IDE / OS ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ── Temporary / test uploads ──────────────────────────────────
+tmp/
+*.tmp
+
+# ── Gemini AI tooling ─────────────────────────────────────────
+.gemini/

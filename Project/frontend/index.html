@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guardian Eye — Anomaly Detection</title>
+  <meta name="description" content="Video anomaly detection powered by a memory-augmented 3D autoencoder trained on ShanghaiTech." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Background grid decoration -->
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
+        <div>
+          <span class="logo-name">Guardian Eye</span>
+          <span class="logo-subtitle">Anomaly Detection System</span>
+        </div>
+      </div>
+      <div id="server-badge" class="server-badge" title="Backend connection status">
+        <span class="badge-dot"></span>
+        <span class="badge-text">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- Upload Card -->
+    <section class="card upload-card">
+      <div class="card-header">
+        <h2 class="card-title">Upload Video</h2>
+        <p class="card-sub">Send a video clip for real-time anomaly analysis</p>
+      </div>
+
+      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Drop zone — click or drag a video file here">
+        <div class="drop-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 10l4.553-2.069A1 1 0 0121 8.882v6.236a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="drop-title">Drag &amp; Drop Video</p>
+        <p class="drop-hint">or <span class="drop-link">click to browse</span></p>
+        <p class="drop-formats">.mp4 &nbsp;·&nbsp; .avi &nbsp;·&nbsp; .mov &nbsp;·&nbsp; .mkv</p>
+        <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv" hidden />
+      </div>
+
+      <!-- Preview panel (shown after file selected) -->
+      <div id="file-preview" class="file-preview hidden">
+        <div class="file-info">
+          <div class="file-icon">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="3" width="20" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M9 8l6 4-6 4V8z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="file-details">
+            <span id="file-name" class="file-name">—</span>
+            <span id="file-size" class="file-size">—</span>
+          </div>
+          <button id="clear-file" class="clear-btn" title="Remove file">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button id="analyze-btn" class="analyze-btn" disabled>
+        <span class="btn-text">Analyze Video</span>
+        <div class="btn-spinner hidden"></div>
+      </button>
+
+      <!-- Model info strip -->
+      <div id="model-info" class="model-info">
+        <span>Model: <strong>MemAE-3D</strong></span>
+        <span class="dot">·</span>
+        <span>Threshold: <strong id="threshold-val">—</strong></span>
+        <span class="dot">·</span>
+        <span>Device: <strong id="device-val">—</strong></span>
+      </div>
+    </section>
+
+    <!-- Results Card -->
+    <section class="card results-card">
+      <div class="card-header">
+        <h2 class="card-title">Analysis Results</h2>
+        <p class="card-sub">Anomaly score and prediction from the model</p>
+      </div>
+
+      <!-- Idle state -->
+      <div id="results-idle" class="results-idle">
+        <div class="idle-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p>Upload a video and click <em>Analyze Video</em> to see results here.</p>
+      </div>
+
+      <!-- Loading state -->
+      <div id="results-loading" class="results-loading hidden">
+        <div class="loading-ring"></div>
+        <p>Running inference…</p>
+        <p class="loading-sub">Processing sliding-window clips through the autoencoder</p>
+      </div>
+
+      <!-- Results -->
+      <div id="results-output" class="results-output hidden">
+
+        <!-- Status badge -->
+        <div id="status-badge" class="status-badge">
+          <div id="status-icon" class="status-icon"></div>
+          <span id="status-label" class="status-label">—</span>
+        </div>
+
+        <!-- Gauge -->
+        <div class="gauge-container">
+          <svg class="gauge-svg" viewBox="0 0 120 70" id="gauge-svg" role="img" aria-label="Anomaly score gauge">
+            <path class="gauge-bg" d="M 10 65 A 50 50 0 0 1 110 65" />
+            <path class="gauge-fill" id="gauge-fill" d="M 10 65 A 50 50 0 0 1 110 65" stroke-dasharray="0 157" />
+          </svg>
+          <div class="gauge-label">
+            <span id="gauge-score" class="gauge-score">—</span>
+            <span class="gauge-unit">anomaly score</span>
+          </div>
+        </div>
+
+        <!-- Metrics grid -->
+        <div class="metrics-grid">
+          <div class="metric">
+            <span class="metric-label">Anomaly Score</span>
+            <span id="metric-score" class="metric-value">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Max Clip Score</span>
+            <span id="metric-max" class="metric-value">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Threshold</span>
+            <span id="metric-threshold" class="metric-value">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Clips Analysed</span>
+            <span id="metric-clips" class="metric-value">—</span>
+          </div>
+        </div>
+
+        <!-- Confidence bar -->
+        <div class="confidence-section">
+          <div class="confidence-header">
+            <span>Confidence Deviation</span>
+            <span id="confidence-pct" class="confidence-pct">—%</span>
+          </div>
+          <div class="confidence-track">
+            <div id="confidence-bar" class="confidence-bar" style="width:0%"></div>
+          </div>
+          <p class="confidence-note">How far the anomaly score deviates from the threshold</p>
+        </div>
+
+        <!-- File info -->
+        <div class="result-file">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span id="result-filename">—</span>
+          &nbsp;·&nbsp;
+          <span id="result-frames">—</span> frames
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div id="results-error" class="results-error hidden">
+        <div class="error-icon">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <p id="error-message" class="error-message">Something went wrong.</p>
+        <button id="retry-btn" class="retry-btn">Try Again</button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span>Guardian Eye &mdash; MemAE-3D Anomaly Detection &nbsp;&bull;&nbsp; ShanghaiTech Dataset</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
