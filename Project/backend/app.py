@@ -27,10 +27,16 @@ from PIL import Image
 # ---------------------------------------------------------------------------
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BACKEND_DIR)
-if PROJECT_DIR not in sys.path:
-    sys.path.insert(0, PROJECT_DIR)
 
-import model_loader  # noqa: E402
+# Add both dirs so imports work regardless of invocation style
+for _p in [PROJECT_DIR, BACKEND_DIR]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+try:
+    from . import model_loader  # package import: python -m uvicorn backend.app:app
+except ImportError:
+    import model_loader  # direct import: python backend/app.py
 
 # ---------------------------------------------------------------------------
 # App Setup
@@ -175,7 +181,7 @@ async def predict(file: UploadFile = File(...)):
         mdl.eval()
         with torch.no_grad():
             for i in range(num_clips):
-                clip = frames[i : i + CLIP_LEN]
+                clip: list[Image.Image] = list(frames[i : i + CLIP_LEN])
                 clip_tensor = (
                     torch.stack([transform(fr) for fr in clip], dim=1)
                     .unsqueeze(0)
@@ -192,15 +198,15 @@ async def predict(file: UploadFile = File(...)):
 
         # Confidence: how far score is relative to threshold (clamped 0–100)
         if threshold > 0:
-            confidence = min(100.0, round(abs(anomaly_score - threshold) / threshold * 100, 1))
+            confidence = min(100.0, round(float(abs(anomaly_score - threshold) / threshold * 100), 1))
         else:
             confidence = 0.0
 
         return {
             "label": "Anomaly" if is_anomaly else "Normal",
             "is_anomaly": is_anomaly,
-            "anomaly_score": round(anomaly_score, 6),
-            "max_clip_score": round(max_score, 6),
+            "anomaly_score": round(float(anomaly_score), 6),
+            "max_clip_score": round(float(max_score), 6),
             "threshold": round(threshold, 6),
             "confidence": confidence,
             "frame_count": len(frames),
