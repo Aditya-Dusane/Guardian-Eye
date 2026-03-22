@@ -1,69 +1,65 @@
-# Guardian Eye — 3D Autoencoder Anomaly Detection
+# 👁️ Guardian Eye — 3D Autoencoder Anomaly Detection
 
 <div align="center">
 
-**Memory-augmented 3D autoencoder for video anomaly detection, trained on the ShanghaiTech Campus dataset.**
+**AI-powered video anomaly detection system using a Memory-Augmented 3D Autoencoder (MemAE-3D)**
 
 </div>
 
 ---
 
-## Overview
+## 🚀 Overview
 
-Guardian Eye is a deep learning system that detects anomalous events in surveillance video. It uses a **Memory-Augmented 3D Autoencoder (MemAE-3D)** that learns to reconstruct only normal video clips. Anomalies produce high reconstruction error and are flagged above a learned threshold.
-
-**Key features:**
-- 3D convolutional encoder–decoder with memory module
-- Sliding-window clip inference (16 frames per clip)
-- Pixel-level and frame-level anomaly localisation
-- FastAPI backend with REST endpoints
-- Modern dark-theme web frontend (no build step required)
+Guardian Eye is a deep learning system that detects anomalous events in surveillance videos. It uses a **Memory-Augmented 3D Autoencoder (MemAE-3D)** trained on normal video patterns. Any deviation results in high reconstruction error and is flagged as an anomaly.
 
 ---
 
-## Folder Structure
+## ✨ Key Features
 
-```
+* 🎥 Video anomaly detection (clip-based)
+* 🧠 3D CNN Autoencoder with memory module
+* ⚡ FastAPI backend for inference
+* 🌐 React (Vite) frontend for UI
+* 📊 Hybrid scoring (mean + max error)
+* 🎯 Clip voting for stable predictions
+* 🖼️ Pixel-level anomaly localisation
+
+---
+
+## 📁 Project Structure
+
+```bash
 major project/
 ├── Project/
-│   ├── checkpoints/
-│   │   ├── model.pth           # Trained model weights
-│   │   └── train_errors.npy    # Training reconstruction errors
-│   ├── dataset/
-│   │   ├── training/videos/    # .avi training clips
-│   │   └── testing/
-│   │       ├── frames/         # Test video frames (per-video folders)
-│   │       ├── test_frame_mask/
-│   │       └── test_pixel_mask/
-│   ├── outputs/                # Annotated inference output videos
-│   ├── backend/
-│   │   ├── app.py              # FastAPI server
-│   │   ├── model_loader.py     # Singleton model loader
-│   │   └── requirements.txt    # Backend dependencies
-│   ├── frontend/
-│   │   ├── index.html          # Main UI
-│   │   ├── style.css           # Dark glassmorphism styles
-│   │   └── app.js              # API integration logic
-│   ├── model.py                # MemAE3D model definition
-│   ├── dataset.py              # Training dataset loader
-│   ├── train.py                # Training script
-│   ├── inference.py            # Batch inference script (ShanghaiTech)
-│   └── check_gpu.py            # GPU/CUDA diagnostic
+│   ├── backend/              # FastAPI backend
+│   ├── frontend/             # React frontend (Vite)
+│   ├── checkpoints/          # Model weights (NOT included in repo)
+│   ├── dataset/              # Dataset (ignored)
+│   ├── outputs/              # Output videos (ignored)
+│   ├── model.py
+│   ├── dataset.py
+│   ├── train.py
+│   ├── inference.py
+│   ├── check_gpu.py
+│   └── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Setup
+## ⚙️ Setup
 
-### 1. Prerequisites
+### 1. Clone Repository
 
-- Python 3.10+
-- CUDA-capable GPU recommended (CPU inference is supported)
-- `git`, `pip`
+```bash
+git clone https://github.com/Aditya-Dusane/Guardian-Eye.git
+cd Guardian-Eye/Project
+```
 
-### 2. Create and activate virtual environment
+---
+
+### 2. Create Virtual Environment
 
 ```bash
 python -m venv venv
@@ -75,137 +71,140 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 3. Install backend dependencies
+---
+
+### 3. Install Dependencies
 
 ```bash
-cd "Project/backend"
 pip install -r requirements.txt
 ```
 
-> **Note:** PyTorch GPU builds require separate installation. Visit [pytorch.org](https://pytorch.org/get-started/locally/) and install the CUDA version matching your system before running the above command.
+> ⚠️ For GPU support, install PyTorch separately from: https://pytorch.org
 
-### 4. Verify GPU (optional)
+---
+
+## 🖥️ Running the Backend
 
 ```bash
 cd Project
-python check_gpu.py
+uvicorn backend.app:app --reload
+```
+
+👉 Backend runs at:
+
+```
+http://127.0.0.1:8000
+```
+
+👉 API Docs:
+
+```
+http://127.0.0.1:8000/docs
 ```
 
 ---
 
-## Running the Backend
+## 🌐 Running the Frontend
 
-From the **`Project/`** directory:
+Open a new terminal:
 
 ```bash
-cd Project
-uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+cd Project/frontend
+npm install
+npm run dev
 ```
 
-The server starts at **http://localhost:8000**
+👉 Frontend runs at:
 
-### API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET`  | `/health` | Liveness probe |
-| `GET`  | `/model-status` | Model info, device, threshold |
-| `POST` | `/predict` | Upload video → get anomaly prediction |
-
-**Quick test after starting the server:**
-
-```bash
-curl http://localhost:8000/health
-curl http://localhost:8000/model-status
+```
+http://localhost:5173/
 ```
 
 ---
 
-## Running the Frontend
+## 🔗 API Usage
 
-No build step required. Open the file directly in a browser:
-
-```
-Project/frontend/index.html
-```
-
-Or serve it with any static server (to avoid CORS on file://) for a better experience:
-
-```bash
-# Using Python's built-in server
-cd "Project/frontend"
-python -m http.server 3000
-# Then open http://localhost:3000
-```
-
-The frontend connects to the backend at `http://localhost:8000` by default.
-
----
-
-## Running Batch Inference (ShanghaiTech)
-
-Requires the ShanghaiTech dataset extracted into `Project/dataset/`:
-
-```bash
-cd Project
-python inference.py
-```
-
-Outputs annotated MP4 videos to `Project/outputs/` and prints frame-level and pixel-level AUC scores.
-
----
-
-## Training from Scratch
-
-```bash
-cd Project
-python train.py
-```
-
-This reads `.avi` clips from `Project/dataset/training/videos/` and saves:
-- `checkpoints/model.pth`
-- `checkpoints/train_errors.npy`
-
----
-
-## Model Architecture
+### Endpoint:
 
 ```
-Input clip  [B, 3, 16, 128, 128]
-    │
-    ▼
-Encoder (Conv3D × 3 + MaxPool3D × 2)  →  [B, 256, 4, 32, 32]
-    │
-    ▼
-Memory Module (attention over 200 prototype vectors)
-    │
-    ▼
-Decoder (ConvTranspose3D × 2 + Conv3D)  →  [B, 3, 16, 128, 128]
-    │
-    ▼
-MSE Reconstruction Error  →  Anomaly Score
+POST /predict
 ```
 
-**Threshold:** 98th percentile of training reconstruction errors.
+### Input:
 
----
+* Upload a video (`.mp4`, `.avi`, `.mov`, `.mkv`)
 
-## GitHub
+### Output:
 
-### First push
-
-```bash
-cd "C:\Users\adity\OneDrive\Desktop\major project"
-git init          # already done
-git add .
-git commit -m "Initial commit: MemAE-3D anomaly detection with backend & frontend"
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin master
+```json
+{
+  "label": "Anomaly / Normal",
+  "anomaly_score": 0.0021,
+  "threshold": 0.0020,
+  "confidence": 72.5,
+  "frame_count": 300,
+  "clip_count": 280
+}
 ```
 
 ---
 
-## Acknowledgements
+## 🧠 How It Works
 
-- **Dataset:** [ShanghaiTech Campus Dataset](https://svip-lab.github.io/dataset/campus_dataset.html)
-- **Model inspiration:** Gong et al., "Memorizing Normality to Detect Anomaly" (ICCV 2019)
+1. Video is split into clips of 16 frames
+2. Model reconstructs each clip
+3. Reconstruction error is computed
+4. Hybrid scoring (mean + max) is applied
+5. Clip voting determines final video label
+
+---
+
+## ⚠️ Important Notes
+
+* Model weights are NOT included due to size limits
+* Dataset (ShanghaiTech / UCSD) is not included
+
+👉 Required files:
+
+```
+Project/checkpoints/model.pth
+Project/checkpoints/train_errors.npy
+```
+
+---
+
+## 📊 Current Limitations
+
+* Model sensitivity depends on dataset distribution
+* Threshold requires tuning
+* Performance varies across unseen environments
+
+---
+
+## 🔮 Future Improvements
+
+* Dynamic thresholding
+* Real-time video streaming
+* Improved generalization
+* Enhanced frontend UI
+
+---
+
+## 👨‍💻 Author
+
+**Aditya Dusane**
+AI & Data Science Engineer
+
+---
+
+## 🙏 Acknowledgements
+
+* ShanghaiTech Campus Dataset
+* UCSD Dataset
+* PyTorch & FastAPI communities
+
+---
+
+## 📌 Status
+
+🚧 Work in Progress — actively improving model accuracy
