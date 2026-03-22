@@ -16,8 +16,12 @@ env/
 .env/
 
 # ── Model / data artifacts (large binaries) ──────────────────
+# Ignore all except checkpoints
 *.pth
 *.npy
+
+!Project/checkpoints/model.pth
+!Project/checkpoints/train_errors.npy
 
 # ── Output videos ─────────────────────────────────────────────
 outputs/
