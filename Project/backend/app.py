@@ -13,14 +13,14 @@ import sys
 import tempfile
 import uuid
 
-import cv2
-import numpy as np
-import torch
-import torchvision.transforms as T
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from PIL import Image
+import cv2  # type: ignore
+import numpy as np  # type: ignore
+import torch  # type: ignore
+import torchvision.transforms as T  # type: ignore
+from fastapi import FastAPI, File, HTTPException, UploadFile  # type: ignore
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore
+from fastapi.responses import JSONResponse  # type: ignore
+from PIL import Image  # type: ignore
 
 # ---------------------------------------------------------------------------
 # Ensure paths are set up before importing model_loader
@@ -34,9 +34,9 @@ for _p in [PROJECT_DIR, BACKEND_DIR]:
         sys.path.insert(0, _p)
 
 try:
-    from . import model_loader  # package import: python -m uvicorn backend.app:app
+    from . import model_loader  # type: ignore
 except ImportError:
-    import model_loader  # direct import: python backend/app.py
+    import model_loader  # type: ignore
 
 # ---------------------------------------------------------------------------
 # App Setup
@@ -113,8 +113,8 @@ def model_status():
         "device": device,
         "threshold": round(threshold, 6),
         "train_error_count": int(len(errors)),
-        "train_error_mean": round(float(np.mean(errors)), 6),
-        "train_error_std": round(float(np.std(errors)), 6),
+        "train_error_mean": round(float(np.mean(errors)), 6),  # type: ignore
+        "train_error_std": round(float(np.std(errors)), 6),  # type: ignore
     }
 
 
@@ -181,7 +181,7 @@ async def predict(file: UploadFile = File(...)):
         mdl.eval()
         with torch.no_grad():
             for i in range(num_clips):
-                clip: list[Image.Image] = list(frames[i : i + CLIP_LEN])
+                clip: list[Image.Image] = list(frames[i : i + CLIP_LEN])  # type: ignore
                 clip_tensor = (
                     torch.stack([transform(fr) for fr in clip], dim=1)
                     .unsqueeze(0)
@@ -198,15 +198,15 @@ async def predict(file: UploadFile = File(...)):
 
         # Confidence: how far score is relative to threshold (clamped 0–100)
         if threshold > 0:
-            confidence = min(100.0, round(float(abs(anomaly_score - threshold) / threshold * 100), 1))
+            confidence = min(100.0, round(float(abs(anomaly_score - threshold) / threshold * 100), 1))  # type: ignore
         else:
             confidence = 0.0
 
         return {
             "label": "Anomaly" if is_anomaly else "Normal",
             "is_anomaly": is_anomaly,
-            "anomaly_score": round(float(anomaly_score), 6),
-            "max_clip_score": round(float(max_score), 6),
+            "anomaly_score": round(float(anomaly_score), 6),  # type: ignore
+            "max_clip_score": round(float(max_score), 6),  # type: ignore
             "threshold": round(threshold, 6),
             "confidence": confidence,
             "frame_count": len(frames),
@@ -227,5 +227,5 @@ async def predict(file: UploadFile = File(...)):
 # Run directly
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # type: ignore
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
